@@ -12,9 +12,10 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background-color: #87ceeb;
+      background-color: #add8e6;
       font-family: 'Arial', sans-serif;
       overflow: hidden;
+      transition: background-color 0.5s ease;
     }
 
     h1 {
@@ -48,10 +49,10 @@
     .mole {
       width: 60%;
       height: 60%;
-      background-color: brown;
-      border-radius: 50%;
       display: none;
       position: absolute;
+      font-size: 2.5rem;
+      line-height: 1;
     }
 
     .mole.active {
@@ -66,9 +67,13 @@
       gap: 20px;
     }
 
-    .score, .timer {
+    .score, .timer, .high-score {
       font-size: 1.5rem;
       color: #333;
+    }
+
+    .difficulty {
+      margin-top: 10px;
     }
 
     button {
@@ -85,41 +90,72 @@
       background-color: #ccc;
       cursor: not-allowed;
     }
+
+    #game-over {
+      display: none;
+      font-size: 2rem;
+      color: red;
+      margin-top: 20px;
+      animation: fadeIn 1s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 <body>
   <h1>Whack-a-Mole</h1>
   <div class="game-board">
-    <div class="square" data-id="0"><div class="mole"></div></div>
-    <div class="square" data-id="1"><div class="mole"></div></div>
-    <div class="square" data-id="2"><div class="mole"></div></div>
-    <div class="square" data-id="3"><div class="mole"></div></div>
-    <div class="square" data-id="4"><div class="mole"></div></div>
-    <div class="square" data-id="5"><div class="mole"></div></div>
-    <div class="square" data-id="6"><div class="mole"></div></div>
-    <div class="square" data-id="7"><div class="mole"></div></div>
-    <div class="square" data-id="8"><div class="mole"></div></div>
+    <div class="square" data-id="0"><div class="mole">🦔</div></div>
+    <div class="square" data-id="1"><div class="mole">🦔</div></div>
+    <div class="square" data-id="2"><div class="mole">🦔</div></div>
+    <div class="square" data-id="3"><div class="mole">🦔</div></div>
+    <div class="square" data-id="4"><div class="mole">🦔</div></div>
+    <div class="square" data-id="5"><div class="mole">🦔</div></div>
+    <div class="square" data-id="6"><div class="mole">🦔</div></div>
+    <div class="square" data-id="7"><div class="mole">🦔</div></div>
+    <div class="square" data-id="8"><div class="mole">🦔</div></div>
   </div>
+  <div id="game-over">Game Over!</div>
   <div class="controls">
     <button id="start-button">Start</button>
+    <button id="reset-button" disabled>Reset</button>
     <div class="score">Score: <span id="score">0</span></div>
     <div class="timer">Time: <span id="timer">30</span>s</div>
+    <div class="high-score">High Score: <span id="high-score">0</span></div>
   </div>
-  <audio id="hit-sound">
-    <source src="https://www.soundjay.com/button/beep-07.wav" type="audio/wav">
-  </audio>
+  <div class="difficulty">
+    Difficulty: 
+    <select id="difficulty">
+      <option value="1000">Easy</option>
+      <option value="800">Medium</option>
+      <option value="500">Hard</option>
+    </select>
+  </div>
   <script>
     const squares = document.querySelectorAll('.square');
     const moles = document.querySelectorAll('.mole');
     const scoreDisplay = document.getElementById('score');
     const timerDisplay = document.getElementById('timer');
+    const highScoreDisplay = document.getElementById('high-score');
     const startButton = document.getElementById('start-button');
-    const hitSound = document.getElementById('hit-sound');
+    const resetButton = document.getElementById('reset-button');
+    const gameOverText = document.getElementById('game-over');
+    const difficultySelect = document.getElementById('difficulty');
 
     let score = 0;
     let timer = 30;
+    let highScore = localStorage.getItem('highScore') || 0;
     let gameInterval;
     let moleInterval;
+
+    highScoreDisplay.textContent = highScore;
 
     function randomMole() {
       moles.forEach(mole => mole.classList.remove('active'));
@@ -133,7 +169,7 @@
         score++;
         scoreDisplay.textContent = score;
         event.target.classList.remove('active');
-        hitSound.play();
+        document.body.style.backgroundColor = getRandomColor();
       }
     }
 
@@ -142,7 +178,11 @@
       timer = 30;
       scoreDisplay.textContent = score;
       timerDisplay.textContent = timer;
+      gameOverText.style.display = 'none';
       startButton.disabled = true;
+      resetButton.disabled = false;
+
+      const moleSpeed = parseInt(difficultySelect.value);
 
       gameInterval = setInterval(() => {
         timer--;
@@ -151,11 +191,39 @@
           clearInterval(gameInterval);
           clearInterval(moleInterval);
           startButton.disabled = false;
-          alert('Game Over! Your score: ' + score);
+          resetButton.disabled = true;
+          gameOverText.style.display = 'block';
+
+          if (score > highScore) {
+            highScore = score;
+            highScoreDisplay.textContent = highScore;
+            localStorage.setItem('highScore', highScore);
+          }
         }
       }, 1000);
 
-      moleInterval = setInterval(randomMole, 800);
+      moleInterval = setInterval(randomMole, moleSpeed);
+    }
+
+    function resetGame() {
+      clearInterval(gameInterval);
+      clearInterval(moleInterval);
+      score = 0;
+      timer = 30;
+      scoreDisplay.textContent = score;
+      timerDisplay.textContent = timer;
+      startButton.disabled = false;
+      resetButton.disabled = true;
+      gameOverText.style.display = 'none';
+    }
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
     }
 
     squares.forEach(square => {
@@ -163,6 +231,7 @@
     });
 
     startButton.addEventListener('click', startGame);
+    resetButton.addEventListener('click', resetGame);
   </script>
 </body>
 </html>
